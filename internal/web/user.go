@@ -4,7 +4,9 @@ import (
 	"github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
+	"time"
 	"vbook/internal/domain"
 	"vbook/internal/service"
 )
@@ -31,7 +33,8 @@ func NewUserHandler(us service.UserService) *UserHandler {
 func (h *UserHandler) RegisterRouters(server *gin.Engine) {
 	u := server.Group("/users")
 	u.POST("/register", h.Register)
-	u.POST("/login", h.Login)
+	//u.POST("/login", h.Login)
+	u.POST("/login", h.LoginJwt)
 	u.POST("/edit", h.Edit)
 	u.GET("/view", h.View)
 }
@@ -119,4 +122,44 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 
 func (h *UserHandler) View(ctx *gin.Context) {
 
+}
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	Uid       int64
+	UserAgent string
+}
+
+var JWTKey = []byte("k6CswdUm77WKcbM68UQUuxVsHSpTCwgK")
+
+func (h *UserHandler) LoginJwt(ctx *gin.Context) {
+	type Req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	u, err := h.us.Login(ctx, req.Email, req.Password)
+	switch err {
+	case nil:
+		uc := UserClaims{
+			Uid: u.Id,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
+		tokenStr, err := token.SignedString(JWTKey)
+		if err != nil {
+			ctx.String(http.StatusOK, "系统错误")
+		}
+		ctx.Header("x-jwt-token", tokenStr)
+		ctx.String(http.StatusOK, "登录成功")
+	case service.ErrInvaliUserOrPassword:
+		ctx.String(http.StatusOK, "账号或者密码不正确")
+	default:
+		ctx.String(http.StatusOK, "系统错误")
+	}
 }

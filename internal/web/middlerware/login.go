@@ -12,6 +12,10 @@ import (
 type LoginMiddlewareBuilder struct {
 }
 
+func NewLoginMiddlewareBuilder() *LoginMiddlewareBuilder {
+	return &LoginMiddlewareBuilder{}
+}
+
 func (m *LoginMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 	gob.Register(time.Now())
 	return func(ctx *gin.Context) {

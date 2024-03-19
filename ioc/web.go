@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 	"vbook/internal/web"
+	"vbook/internal/web/middlerware"
 )
 
 func InitWeb(mdls []gin.HandlerFunc, userHdl *web.UserHandler) *gin.Engine {
@@ -18,7 +19,8 @@ func InitGinMiddleware() []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		cors.New(cors.Config{
 			AllowCredentials: true,
-			AllowHeaders:     []string{"Content-Type"},
+			AllowHeaders:     []string{"Content-Type", "Authorization"},
+			ExposeHeaders:    []string{"x-jwt-token"},
 			AllowOriginFunc: func(origin string) bool {
 				if strings.HasPrefix(origin, "http://localhost") {
 					return true
@@ -27,5 +29,7 @@ func InitGinMiddleware() []gin.HandlerFunc {
 			},
 			MaxAge: 15 * time.Hour,
 		}),
+		//middlerware.NewLoginMiddlewareBuilder().CheckLogin(),
+		middlerware.NewLoginJwtMiddlewareBuilder().CheckLogin(),
 	}
 }
