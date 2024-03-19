@@ -2,6 +2,7 @@ package web
 
 import (
 	"github.com/dlclark/regexp2"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"vbook/internal/domain"
@@ -90,9 +91,20 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
-	_, err := h.us.Login(ctx, req.Email, req.Password)
+	u, err := h.us.Login(ctx, req.Email, req.Password)
 	switch err {
 	case nil:
+		sess := sessions.Default(ctx)
+		sess.Set("userId", u.Id)
+		sess.Options(sessions.Options{
+			//十分组
+			MaxAge:   600,
+			HttpOnly: true,
+		})
+		err := sess.Save()
+		if err != nil {
+			return
+		}
 		ctx.String(http.StatusOK, "登录成功")
 	case service.ErrInvaliUserOrPassword:
 		ctx.String(http.StatusOK, "账号或者密码不正确")
