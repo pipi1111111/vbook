@@ -16,6 +16,7 @@ var (
 type UserService interface {
 	Register(ctx *gin.Context, ud domain.User) error
 	Login(ctx *gin.Context, email string, password string) (domain.User, error)
+	Update(ctx *gin.Context, user domain.User) error
 }
 type userService struct {
 	repo repository.UserRepository
@@ -48,4 +49,7 @@ func (us *userService) Login(ctx *gin.Context, email string, password string) (d
 		return domain.User{}, ErrInvaliUserOrPassword
 	}
 	return domain.User{}, nil
+}
+func (us *userService) Update(ctx *gin.Context, user domain.User) error {
+	return us.repo.Update(ctx, user)
 }

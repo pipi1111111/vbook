@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -117,6 +118,36 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 }
 
 func (h *UserHandler) Edit(ctx *gin.Context) {
+	type Req struct {
+		Name      string `json:"name"`
+		Birthday  string `json:"birthday"`
+		Introduce string `json:"introduce"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	uc, ok := ctx.MustGet("user").(UserClaims)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	birthday, err := time.Parse(time.DateOnly, req.Birthday)
+	if err != nil {
+		ctx.String(http.StatusOK, "生日格式不正确")
+		return
+	}
+	err = h.us.Update(ctx, domain.User{
+		Id:        uc.Uid,
+		Name:      req.Name,
+		Birthday:  birthday,
+		Introduce: req.Introduce,
+	})
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	ctx.String(http.StatusOK, "修改成功")
 
 }
 
@@ -151,7 +182,9 @@ func (h *UserHandler) LoginJwt(ctx *gin.Context) {
 			},
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
+		fmt.Println(token)
 		tokenStr, err := token.SignedString(JWTKey)
+		fmt.Println(tokenStr)
 		if err != nil {
 			ctx.String(http.StatusOK, "系统错误")
 		}

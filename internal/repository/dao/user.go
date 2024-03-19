@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 	"time"
@@ -28,6 +29,7 @@ type User struct {
 type UserDao interface {
 	Insert(ctx context.Context, u User) error
 	FindByEmail(ctx context.Context, email string) (User, error)
+	UpdateById(ctx *gin.Context, user User) error
 }
 type GormUserDao struct {
 	db *gorm.DB
@@ -56,4 +58,12 @@ func (ud *GormUserDao) FindByEmail(ctx context.Context, email string) (User, err
 	var u User
 	err := ud.db.WithContext(ctx).Where("email = ?", email).Find(&u).Error
 	return u, err
+}
+func (ud *GormUserDao) UpdateById(ctx *gin.Context, user User) error {
+	return ud.db.WithContext(ctx).Model(&user).Where("id = ?", user.Id).Updates(map[string]any{
+		"utime":     time.Now().UnixMilli(),
+		"name":      user.Name,
+		"birthday":  user.Birthday,
+		"introduce": user.Introduce,
+	}).Error
 }

@@ -16,6 +16,7 @@ var (
 type UserRepository interface {
 	Create(ctx *gin.Context, ud domain.User) error
 	FindByEmail(ctx *gin.Context, email string) (domain.User, error)
+	Update(ctx *gin.Context, user domain.User) error
 }
 type userRepository struct {
 	ud dao.UserDao
@@ -65,4 +66,8 @@ func (ur *userRepository) toDomain(u dao.User) domain.User {
 		Introduce: u.Introduce,
 		Ctime:     time.UnixMilli(u.Ctime),
 	}
+}
+
+func (ur *userRepository) Update(ctx *gin.Context, user domain.User) error {
+	return ur.ud.UpdateById(ctx, ur.toDaoUser(user))
 }
