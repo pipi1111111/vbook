@@ -48,6 +48,11 @@ func (m *LoginJwtMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
+		if uc.UserAgent != ctx.GetHeader("User-Agent") {
+			//进来这里大概率是攻击者
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
 		expireTime := uc.ExpiresAt
 		if expireTime.Sub(time.Now()) < time.Minute*20 {
 			uc.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute * 30))
