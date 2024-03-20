@@ -3,10 +3,13 @@ package ioc
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"strings"
 	"time"
 	"vbook/internal/web"
 	"vbook/internal/web/middlerware"
+	"vbook/pkg/limiter"
+	"vbook/pkg/middleware/ratelimit"
 )
 
 func InitWeb(mdls []gin.HandlerFunc, userHdl *web.UserHandler) *gin.Engine {
@@ -15,7 +18,7 @@ func InitWeb(mdls []gin.HandlerFunc, userHdl *web.UserHandler) *gin.Engine {
 	userHdl.RegisterRouters(server)
 	return server
 }
-func InitGinMiddleware() []gin.HandlerFunc {
+func InitGinMiddleware(redisClient redis.Cmdable) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		cors.New(cors.Config{
 			AllowCredentials: true,
@@ -29,6 +32,8 @@ func InitGinMiddleware() []gin.HandlerFunc {
 			},
 			MaxAge: 15 * time.Hour,
 		}),
+		//限流
+		ratelimit.NewBuilder(limiter.NewRedisSlidingWindowsLimiter(redisClient, time.Second, 1)).Build(),
 		//middlerware.NewLoginMiddlewareBuilder().CheckLogin(),
 		middlerware.NewLoginJwtMiddlewareBuilder().CheckLogin(),
 	}
