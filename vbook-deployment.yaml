@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vbook-record-service
+spec:
+  #三个副本
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vbook-record
+  template:
+    metadata:
+      labels:
+        #这个webbook-record 一定要和前面的selector的matchLables匹配
+        app: vboook-record
+        #这个是Deployment管理的POd模板
+    spec:
+      #Pod里面运行的所有的contain
+      containers:
+        - name: vbook-record
+          image: flycash/vbook:v0.0.1
+          ports:
+            - containerPort: 8080

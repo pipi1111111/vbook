@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vbook-record-redis
+  labels:
+    app: vbook-record-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vbook-record-redis
+  template:
+    metadata:
+      name: vbook-record-redis
+      labels:
+        app: vbook-record-redis
+    spec:
+      containers:
+        - name: vbook-record-redis
+          image: redis:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+      restartPolicy: Always
+      
