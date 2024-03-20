@@ -30,6 +30,7 @@ type UserDao interface {
 	Insert(ctx context.Context, u User) error
 	FindByEmail(ctx context.Context, email string) (User, error)
 	UpdateById(ctx *gin.Context, user User) error
+	FindById(ctx context.Context, uid int64) (User, error)
 }
 type GormUserDao struct {
 	db *gorm.DB
@@ -66,4 +67,9 @@ func (ud *GormUserDao) UpdateById(ctx *gin.Context, user User) error {
 		"birthday":  user.Birthday,
 		"introduce": user.Introduce,
 	}).Error
+}
+func (ud *GormUserDao) FindById(ctx context.Context, uid int64) (User, error) {
+	var u User
+	err := ud.db.WithContext(ctx).Where("id = ?", uid).Find(&u).Error
+	return u, err
 }

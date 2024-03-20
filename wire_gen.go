@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"vbook/internal/repository"
+	"vbook/internal/repository/cache"
 	"vbook/internal/repository/dao"
 	"vbook/internal/service"
 	"vbook/internal/web"
@@ -21,7 +22,9 @@ func InitWebServer() *gin.Engine {
 	v := ioc.InitGinMiddleware()
 	db := ioc.InitDB()
 	userDao := dao.NewUserDao(db)
-	userRepository := repository.NewUserRepository(userDao)
+	cmdable := ioc.InitRedis()
+	userCache := cache.NewUserCache(cmdable)
+	userRepository := repository.NewUserRepository(userDao, userCache)
 	userService := service.NewUserService(userRepository)
 	userHandler := web.NewUserHandler(userService)
 	engine := ioc.InitWeb(v, userHandler)

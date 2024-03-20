@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"vbook/internal/repository"
+	"vbook/internal/repository/cache"
 	"vbook/internal/repository/dao"
 	"vbook/internal/service"
 	"vbook/internal/web"
@@ -17,6 +18,7 @@ func InitWebServer() *gin.Engine {
 		ioc.InitDB,
 		ioc.InitRedis,
 		dao.NewUserDao,
+		cache.NewUserCache,
 		repository.NewUserRepository,
 		service.NewUserService,
 		web.NewUserHandler,

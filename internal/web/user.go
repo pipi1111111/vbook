@@ -152,7 +152,28 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 }
 
 func (h *UserHandler) View(ctx *gin.Context) {
-
+	uc, ok := ctx.MustGet("user").(UserClaims)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	u, err := h.us.FindById(ctx, uc.Uid)
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	type User struct {
+		Email     string `json:"email"`
+		Name      string `json:"name"`
+		Introduce string `json:"introduce"`
+		Birthday  string `json:"birthday"`
+	}
+	ctx.JSON(http.StatusOK, User{
+		Email:     u.Email,
+		Name:      u.Name,
+		Introduce: u.Introduce,
+		Birthday:  u.Birthday.Format(time.DateOnly),
+	})
 }
 
 type UserClaims struct {

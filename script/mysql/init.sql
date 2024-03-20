@@ -1,1 +1,1 @@
-create database vbook
+create database vbook;

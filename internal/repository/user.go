@@ -1,10 +1,13 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"github.com/gin-gonic/gin"
+	"log"
 	"time"
 	"vbook/internal/domain"
+	"vbook/internal/repository/cache"
 	"vbook/internal/repository/dao"
 )
 
@@ -17,14 +20,17 @@ type UserRepository interface {
 	Create(ctx *gin.Context, ud domain.User) error
 	FindByEmail(ctx *gin.Context, email string) (domain.User, error)
 	Update(ctx *gin.Context, user domain.User) error
+	FindById(ctx context.Context, uid int64) (domain.User, error)
 }
 type userRepository struct {
-	ud dao.UserDao
+	ud    dao.UserDao
+	cache cache.UserCache
 }
 
-func NewUserRepository(ud dao.UserDao) UserRepository {
+func NewUserRepository(ud dao.UserDao, cache cache.UserCache) UserRepository {
 	return &userRepository{
-		ud: ud,
+		ud:    ud,
+		cache: cache,
 	}
 }
 func (ur *userRepository) Create(ctx *gin.Context, ud domain.User) error {
@@ -70,4 +76,20 @@ func (ur *userRepository) toDomain(u dao.User) domain.User {
 
 func (ur *userRepository) Update(ctx *gin.Context, user domain.User) error {
 	return ur.ud.UpdateById(ctx, ur.toDaoUser(user))
+}
+func (ur *userRepository) FindById(ctx context.Context, uid int64) (domain.User, error) {
+	du, err := ur.cache.Get(ctx, uid)
+	if err == nil {
+		return domain.User{}, err
+	}
+	u, err := ur.ud.FindById(ctx, uid)
+	if err != nil {
+		return domain.User{}, err
+	}
+	du = ur.toDomain(u)
+	err = ur.cache.Set(ctx, du)
+	if err != nil {
+		log.Println(err)
+	}
+	return du, nil
 }
