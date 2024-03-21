@@ -30,5 +30,5 @@ func initTencentSMSService() sms.Service {
 	if err != nil {
 		panic(err)
 	}
-	return tencent.NewService(c, "1400842696", "妙影科技")
+	return tencent.NewService(c, "1400842696", "")
 }
