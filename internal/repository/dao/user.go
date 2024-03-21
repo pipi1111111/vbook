@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 	"time"
@@ -29,8 +28,9 @@ type User struct {
 type UserDao interface {
 	Insert(ctx context.Context, u User) error
 	FindByEmail(ctx context.Context, email string) (User, error)
-	UpdateById(ctx *gin.Context, user User) error
+	UpdateById(ctx context.Context, user User) error
 	FindById(ctx context.Context, uid int64) (User, error)
+	FindByPhone(ctx context.Context, phone string) (User, error)
 }
 type GormUserDao struct {
 	db *gorm.DB
@@ -60,7 +60,7 @@ func (ud *GormUserDao) FindByEmail(ctx context.Context, email string) (User, err
 	err := ud.db.WithContext(ctx).Where("email = ?", email).Find(&u).Error
 	return u, err
 }
-func (ud *GormUserDao) UpdateById(ctx *gin.Context, user User) error {
+func (ud *GormUserDao) UpdateById(ctx context.Context, user User) error {
 	return ud.db.WithContext(ctx).Model(&user).Where("id = ?", user.Id).Updates(map[string]any{
 		"utime":     time.Now().UnixMilli(),
 		"name":      user.Name,
@@ -71,5 +71,10 @@ func (ud *GormUserDao) UpdateById(ctx *gin.Context, user User) error {
 func (ud *GormUserDao) FindById(ctx context.Context, uid int64) (User, error) {
 	var u User
 	err := ud.db.WithContext(ctx).Where("id = ?", uid).Find(&u).Error
+	return u, err
+}
+func (ud *GormUserDao) FindByPhone(ctx context.Context, phone string) (User, error) {
+	var u User
+	err := ud.db.WithContext(ctx).Where("phone = ?", phone).Find(&u).Error
 	return u, err
 }
