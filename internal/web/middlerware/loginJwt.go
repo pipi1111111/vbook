@@ -22,7 +22,9 @@ func (m *LoginJwtMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		path := ctx.Request.URL.Path
 		if path == "/users/register" ||
-			path == "/users/login" {
+			path == "/users/login" ||
+			path == "/users/loginSms" ||
+			path == "/users/sendSms" {
 			return
 		}
 		authCode := ctx.GetHeader("Authorization")
