@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"github.com/gin-gonic/gin"
 	"log"
 	"time"
 	"vbook/internal/domain"
@@ -16,11 +17,10 @@ var (
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, ud domain.User) error
-	FindByEmail(ctx context.Context, email string) (domain.User, error)
-	Update(ctx context.Context, user domain.User) error
+	Create(ctx *gin.Context, ud domain.User) error
+	FindByEmail(ctx *gin.Context, email string) (domain.User, error)
+	Update(ctx *gin.Context, user domain.User) error
 	FindById(ctx context.Context, uid int64) (domain.User, error)
-	FindByPhone(ctx context.Context, phone string) (domain.User, error)
 }
 type userRepository struct {
 	ud    dao.UserDao
@@ -33,10 +33,10 @@ func NewUserRepository(ud dao.UserDao, cache cache.UserCache) UserRepository {
 		cache: cache,
 	}
 }
-func (ur *userRepository) Create(ctx context.Context, ud domain.User) error {
+func (ur *userRepository) Create(ctx *gin.Context, ud domain.User) error {
 	return ur.ud.Insert(ctx, ur.toDaoUser(ud))
 }
-func (ur *userRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
+func (ur *userRepository) FindByEmail(ctx *gin.Context, email string) (domain.User, error) {
 	u, err := ur.ud.FindByEmail(ctx, email)
 	if err != nil {
 		return domain.User{}, err
@@ -74,7 +74,7 @@ func (ur *userRepository) toDomain(u dao.User) domain.User {
 	}
 }
 
-func (ur *userRepository) Update(ctx context.Context, user domain.User) error {
+func (ur *userRepository) Update(ctx *gin.Context, user domain.User) error {
 	return ur.ud.UpdateById(ctx, ur.toDaoUser(user))
 }
 func (ur *userRepository) FindById(ctx context.Context, uid int64) (domain.User, error) {
@@ -92,12 +92,4 @@ func (ur *userRepository) FindById(ctx context.Context, uid int64) (domain.User,
 		log.Println(err)
 	}
 	return du, nil
-}
-
-func (ur *userRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
-	u, err := ur.ud.FindByPhone(ctx, phone)
-	if err != nil {
-		return domain.User{}, err
-	}
-	return ur.toDomain(u), nil
 }

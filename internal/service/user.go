@@ -18,7 +18,6 @@ type UserService interface {
 	Login(ctx *gin.Context, email string, password string) (domain.User, error)
 	Update(ctx *gin.Context, user domain.User) error
 	FindById(ctx *gin.Context, uid int64) (domain.User, error)
-	FindOrCreate(ctx *gin.Context, phone string) (domain.User, error)
 }
 type userService struct {
 	repo repository.UserRepository
@@ -57,15 +56,4 @@ func (us *userService) Update(ctx *gin.Context, user domain.User) error {
 }
 func (us *userService) FindById(ctx *gin.Context, uid int64) (domain.User, error) {
 	return us.repo.FindById(ctx, uid)
-}
-func (us *userService) FindOrCreate(ctx *gin.Context, phone string) (domain.User, error) {
-	u, err := us.repo.FindByPhone(ctx, phone)
-	if err != repository.ErrUserNotFound {
-		return u, err
-	}
-	err = us.repo.Create(ctx, domain.User{Phone: phone})
-	if err != nil && err == repository.ErrDuplicateUser {
-		return domain.User{}, err
-	}
-	return us.repo.FindByPhone(ctx, phone)
 }
