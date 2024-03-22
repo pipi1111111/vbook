@@ -23,12 +23,13 @@ type StateClaims struct {
 	State string
 }
 
-func NewWechatUserHandler(ws wechat.Service, us service.UserService) *OAuth2WechatHandler {
+func NewWechatUserHandler(ws wechat.Service, us service.UserService, hdl ijwt.Handler) *OAuth2WechatHandler {
 	return &OAuth2WechatHandler{
 		ws:              ws,
 		us:              us,
 		key:             []byte("k6CswdUm77WKcbM68UQUuxVsHSpTDwgK"),
 		stateCookieName: "jwt-state",
+		Handler:         hdl,
 	}
 }
 func (o *OAuth2WechatHandler) RegisterRouters(server *gin.Engine) {

@@ -7,24 +7,25 @@ import (
 	"strings"
 	"time"
 	"vbook/internal/web"
+	ijwt "vbook/internal/web/jwt"
 	"vbook/internal/web/middlerware"
 	"vbook/pkg/limiter"
 	"vbook/pkg/middleware/ratelimit"
 )
 
-func InitWeb(mdls []gin.HandlerFunc, userHdl *web.UserHandler, wechatHdl *web.OAuth2WechatHandler) *gin.Engine {
+func InitWeb(mdls []gin.HandlerFunc, userHdl *web.UserHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	userHdl.RegisterRouters(server)
-	wechatHdl.RegisterRouters(server)
+	//wechatHdl.RegisterRouters(server)
 	return server
 }
-func InitGinMiddleware(redisClient redis.Cmdable) []gin.HandlerFunc {
+func InitGinMiddleware(redisClient redis.Cmdable, hdl ijwt.Handler) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		cors.New(cors.Config{
 			AllowCredentials: true,
 			AllowHeaders:     []string{"Content-Type", "Authorization"},
-			ExposeHeaders:    []string{"x-jwt-token"},
+			ExposeHeaders:    []string{"x-jwt-token", "x-refresh-token"},
 			AllowOriginFunc: func(origin string) bool {
 				if strings.HasPrefix(origin, "http://localhost") {
 					return true
@@ -36,6 +37,6 @@ func InitGinMiddleware(redisClient redis.Cmdable) []gin.HandlerFunc {
 		//限流
 		ratelimit.NewBuilder(limiter.NewRedisSlidingWindowsLimiter(redisClient, time.Second, 500)).Build(),
 		//middlerware.NewLoginMiddlewareBuilder().CheckLogin(),
-		middlerware.NewLoginJwtMiddlewareBuilder().CheckLogin(),
+		middlerware.NewLoginJwtMiddlewareBuilder(hdl).CheckLogin(),
 	}
 }
