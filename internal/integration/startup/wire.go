@@ -1,6 +1,6 @@
 //go:build wireinject
 
-package main
+package startup
 
 import (
 	"github.com/gin-gonic/gin"
@@ -14,10 +14,13 @@ import (
 	"vbook/ioc"
 )
 
+var thirdPartySet = wire.NewSet(
+	ioc.InitDB, ioc.InitRedis,
+)
+
 func InitWebServer() *gin.Engine {
 	wire.Build(
-		//第三方依赖
-		ioc.InitDB, ioc.InitRedis,
+		thirdPartySet,
 		//dao部分
 		dao.NewUserDao, dao.NewArticleDao,
 		//cache部分
@@ -40,4 +43,14 @@ func InitWebServer() *gin.Engine {
 		ioc.InitGinMiddleware,
 	)
 	return gin.Default()
+}
+func InitArticleHandler() *web.ArticleHandler {
+	wire.Build(
+		thirdPartySet,
+		dao.NewArticleDao,
+		repository.NewArticleRepository,
+		service.NewArticleService,
+		web.NewArticleHandler,
+	)
+	return &web.ArticleHandler{}
 }
