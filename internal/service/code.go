@@ -9,7 +9,7 @@ import (
 	"vbook/internal/service/sms"
 )
 
-var ErrCodeSendTooMany = repository.ErrCodeVerifyTooMany
+var ErrCodeSendTooMany = repository.ErrCodeSendTooMany
 
 type CodeService interface {
 	Send(ctx context.Context, biz string, phone string) error
