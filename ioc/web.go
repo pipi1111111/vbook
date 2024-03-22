@@ -12,10 +12,11 @@ import (
 	"vbook/pkg/middleware/ratelimit"
 )
 
-func InitWeb(mdls []gin.HandlerFunc, userHdl *web.UserHandler) *gin.Engine {
+func InitWeb(mdls []gin.HandlerFunc, userHdl *web.UserHandler, wechatHdl *web.OAuth2WechatHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	userHdl.RegisterRouters(server)
+	wechatHdl.RegisterRouters(server)
 	return server
 }
 func InitGinMiddleware(redisClient redis.Cmdable) []gin.HandlerFunc {

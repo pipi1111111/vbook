@@ -15,15 +15,17 @@ var (
 )
 
 type User struct {
-	Id        int64          `gorm:"primaryKey,autoIncrement"`
-	Email     sql.NullString `gorm:"unique"`
-	Password  string
-	Name      string `gorm:"type=varchar(128)"`
-	Birthday  int64
-	Introduce string         `gorm:"type=varchar(4096)"`
-	Phone     sql.NullString `gorm:"unique"`
-	Ctime     int64
-	Utime     int64
+	Id            int64          `gorm:"primaryKey,autoIncrement"`
+	Email         sql.NullString `gorm:"unique"`
+	Password      string
+	Name          string `gorm:"type=varchar(128)"`
+	Birthday      int64
+	Introduce     string         `gorm:"type=varchar(4096)"`
+	Phone         sql.NullString `gorm:"unique"`
+	WechatOpenId  sql.NullString `gorm:"unique"`
+	WechatUnionId sql.NullString
+	Ctime         int64
+	Utime         int64
 }
 type UserDao interface {
 	Insert(ctx context.Context, u User) error
@@ -31,6 +33,7 @@ type UserDao interface {
 	UpdateById(ctx context.Context, user User) error
 	FindById(ctx context.Context, uid int64) (User, error)
 	FindByPhone(ctx context.Context, phone string) (User, error)
+	FindByWechat(ctx context.Context, id string) (User, error)
 }
 type GormUserDao struct {
 	db *gorm.DB
@@ -76,5 +79,10 @@ func (ud *GormUserDao) FindById(ctx context.Context, uid int64) (User, error) {
 func (ud *GormUserDao) FindByPhone(ctx context.Context, phone string) (User, error) {
 	var u User
 	err := ud.db.WithContext(ctx).Where("phone = ?", phone).Find(&u).Error
+	return u, err
+}
+func (d *GormUserDao) FindByWechat(ctx context.Context, openId string) (User, error) {
+	var u User
+	err := d.db.WithContext(ctx).Where("wechat_open_id = ?", openId).First(&u).Error
 	return u, err
 }
