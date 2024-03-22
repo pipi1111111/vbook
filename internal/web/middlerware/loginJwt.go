@@ -4,18 +4,19 @@ import (
 	"encoding/gob"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"log"
 	"net/http"
-	"strings"
 	"time"
-	"vbook/internal/web"
+	ijwt "vbook/internal/web/jwt"
 )
 
 type LoginJwtMiddlewareBuilder struct {
+	ijwt.Handler
 }
 
-func NewLoginJwtMiddlewareBuilder() *LoginJwtMiddlewareBuilder {
-	return &LoginJwtMiddlewareBuilder{}
+func NewLoginJwtMiddlewareBuilder(hdl ijwt.Handler) *LoginJwtMiddlewareBuilder {
+	return &LoginJwtMiddlewareBuilder{
+		Handler: hdl,
+	}
 }
 func (m *LoginJwtMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 	gob.Register(time.Now())
@@ -29,20 +30,10 @@ func (m *LoginJwtMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 			path == "/oauth2wechat/callback" {
 			return
 		}
-		authCode := ctx.GetHeader("Authorization")
-		if authCode == "" {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		segs := strings.Split(authCode, " ")
-		if len(segs) != 2 {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		tokenStr := segs[1]
-		var uc web.UserClaims
+		tokenStr := m.ExtractToken(ctx)
+		var uc ijwt.UserClaims
 		token, err := jwt.ParseWithClaims(tokenStr, &uc, func(token *jwt.Token) (interface{}, error) {
-			return web.JWTKey, nil
+			return ijwt.JWTKey, nil
 		})
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
@@ -57,16 +48,22 @@ func (m *LoginJwtMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		expireTime := uc.ExpiresAt
-		if expireTime.Sub(time.Now()) < time.Minute*20 {
-			uc.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute * 30))
-			newToken, err := token.SignedString(web.JWTKey)
-			if err != nil {
-				log.Println(err)
-			} else {
-				ctx.Header("x-jwt-token", newToken)
-			}
+		err = m.CheckSession(ctx, uc.Ssid)
+		if err != nil {
+			// token 无效或者 redis 有问题
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
+		//expireTime := uc.ExpiresAt
+		//if expireTime.Sub(time.Now()) < time.Minute*20 {
+		//	uc.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute * 30))
+		//	newToken, err := token.SignedString(web.JWTKey)
+		//	if err != nil {
+		//		log.Println(err)
+		//	} else {
+		//		ctx.Header("x-jwt-token", newToken)
+		//	}
+		//}
 		ctx.Set("user", uc)
 	}
 }
