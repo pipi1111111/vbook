@@ -16,7 +16,7 @@ type TimeOutFailOverSMSService struct {
 	threshold int32
 }
 
-func (t TimeOutFailOverSMSService) Send(ctx context.Context, tplId string, args []string, numbers ...string) error {
+func (t *TimeOutFailOverSMSService) Send(ctx context.Context, tplId string, args []string, numbers ...string) error {
 	idx := atomic.LoadInt32(&t.idx)
 	cnt := atomic.LoadInt32(&t.cnt)
 	if cnt >= t.threshold {
