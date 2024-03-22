@@ -21,6 +21,7 @@ type UserRepository interface {
 	Update(ctx context.Context, user domain.User) error
 	FindById(ctx context.Context, uid int64) (domain.User, error)
 	FindByPhone(ctx context.Context, phone string) (domain.User, error)
+	FindByWechat(ctx context.Context, id string) (domain.User, error)
 }
 type userRepository struct {
 	ud    dao.UserDao
@@ -58,6 +59,14 @@ func (ur *userRepository) toDaoUser(ud domain.User) dao.User {
 			String: ud.Phone,
 			Valid:  true,
 		},
+		WechatUnionId: sql.NullString{
+			String: ud.WechatInfo.UnionId,
+			Valid:  true,
+		},
+		WechatOpenId: sql.NullString{
+			String: ud.WechatInfo.OpenId,
+			Valid:  true,
+		},
 	}
 }
 
@@ -71,6 +80,10 @@ func (ur *userRepository) toDomain(u dao.User) domain.User {
 		Birthday:  time.UnixMilli(u.Birthday),
 		Introduce: u.Introduce,
 		Ctime:     time.UnixMilli(u.Ctime),
+		WechatInfo: domain.WechatInfo{
+			OpenId:  u.WechatOpenId.String,
+			UnionId: u.WechatUnionId.String,
+		},
 	}
 }
 
@@ -100,4 +113,11 @@ func (ur *userRepository) FindByPhone(ctx context.Context, phone string) (domain
 		return domain.User{}, err
 	}
 	return ur.toDomain(u), nil
+}
+func (ur *userRepository) FindByWechat(ctx context.Context, openId string) (domain.User, error) {
+	ue, err := ur.ud.FindByWechat(ctx, openId)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return ur.toDomain(ue), nil
 }

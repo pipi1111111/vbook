@@ -24,7 +24,9 @@ func (m *LoginJwtMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 		if path == "/users/register" ||
 			path == "/users/login" ||
 			path == "/users/loginSms" ||
-			path == "/users/sendSms" {
+			path == "/users/sendSms" ||
+			path == "/oauth2wechat/authurl" ||
+			path == "/oauth2wechat/callback" {
 			return
 		}
 		authCode := ctx.GetHeader("Authorization")
