@@ -16,7 +16,6 @@ type Builder struct {
 
 func NewBuilder(limiter limiter.Limiter) *Builder {
 	return &Builder{
-
 		prefix:  "ip-limiter",
 		limiter: limiter,
 	}

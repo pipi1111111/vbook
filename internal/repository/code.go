@@ -5,7 +5,9 @@ import (
 	"vbook/internal/repository/cache"
 )
 
-var ErrCodeVerifyTooMany = cache.ErrCodeVerifyTooMany
+var (
+	ErrCodeSendTooMany = cache.ErrCodeSendTooMany
+)
 
 type CodeRepository interface {
 	Set(ctx context.Context, biz string, phone string, code string) error
