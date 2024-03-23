@@ -25,6 +25,7 @@ func (ah *ArticleHandler) RegisterRouters(server *gin.Engine) {
 // Edit 接受一个Article输入 返回一个文章的Id
 func (ah *ArticleHandler) Edit(ctx *gin.Context) {
 	type Req struct {
+		Id      int64  `json:"id"`
 		Title   string `json:"title"`
 		Content string `json:"content"`
 	}
@@ -34,6 +35,7 @@ func (ah *ArticleHandler) Edit(ctx *gin.Context) {
 	}
 	uc := ctx.MustGet("user").(ijwt.UserClaims)
 	id, err := ah.as.Save(ctx, domain.Article{
+		Id:      req.Id,
 		Title:   req.Title,
 		Content: req.Content,
 		Author: domain.Author{

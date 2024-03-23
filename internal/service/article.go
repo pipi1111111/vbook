@@ -19,5 +19,10 @@ func NewArticleService(ar repository.ArticleRepository) ArticleService {
 	}
 }
 func (as *articleService) Save(ctx context.Context, article domain.Article) (int64, error) {
-	return as.ar.Create(ctx, article)
+	if article.Id > 0 {
+		err := as.ar.Update(ctx, article)
+		return article.Id, err
+	} else {
+		return as.ar.Create(ctx, article)
+	}
 }
