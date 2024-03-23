@@ -16,6 +16,7 @@ import (
 )
 
 type Article struct {
+	Id      int64  `json:"id"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
@@ -80,6 +81,88 @@ func (a *ArticleHandlerSuite) TestEdit() {
 			wantResult: Res[int64]{
 				//我希望你的Id是1
 				Data: 1,
+			},
+		},
+		{
+			name: "修改帖子",
+			before: func(t *testing.T) {
+				err := a.db.Create(dao.Article{
+					Id:       2,
+					Title:    "我的标题",
+					Content:  "我的文章",
+					AuthorId: 123,
+					Ctime:    456,
+					Utime:    789,
+				}).Error
+				assert.NoError(t, err)
+			},
+			after: func(t *testing.T) {
+				//你要验证 保存到了数据库中
+				var art dao.Article
+				err := a.db.Where("id = ?", 2).First(&art).Error
+				assert.NoError(t, err)
+				assert.True(t, art.Utime > 789)
+				assert.True(t, art.Id > 0)
+				art.Utime = 0
+				assert.Equal(t, dao.Article{
+					Id:       2,
+					Title:    "新的标题",
+					Content:  "新的文章",
+					AuthorId: 123,
+					Ctime:    456,
+				}, art)
+
+			},
+			art: Article{
+				Id:      2,
+				Title:   "新的标题",
+				Content: "新的文章",
+			},
+			wantCode: http.StatusOK,
+			wantResult: Res[int64]{
+				//我希望你的Id是1
+				Data: 2,
+			},
+		},
+		{
+			name: "修改帖子-别人的帖子",
+			before: func(t *testing.T) {
+				err := a.db.Create(dao.Article{
+					Id:       3,
+					Title:    "我的标题",
+					Content:  "我的文章",
+					AuthorId: 234,
+					Ctime:    456,
+					Utime:    789,
+				}).Error
+				assert.NoError(t, err)
+			},
+			after: func(t *testing.T) {
+				//验证数据没有变
+				//你要验证 保存到了数据库中
+				var art dao.Article
+				err := a.db.Where("id = ?", 3).First(&art).Error
+				assert.NoError(t, err)
+				assert.True(t, art.Id > 0)
+				assert.Equal(t, dao.Article{
+					Id:       3,
+					Title:    "我的标题",
+					Content:  "我的文章",
+					AuthorId: 234,
+					Ctime:    456,
+					Utime:    789,
+				}, art)
+
+			},
+			art: Article{
+				Id:      3,
+				Title:   "新的标题",
+				Content: "新的文章",
+			},
+			wantCode: http.StatusOK,
+			wantResult: Res[int64]{
+				Code: 5,
+				Msg:  "系统错误",
 			},
 		},
 	}
