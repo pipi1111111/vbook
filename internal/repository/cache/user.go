@@ -9,6 +9,8 @@ import (
 	"vbook/internal/domain"
 )
 
+var ErrKeyNotExist = redis.Nil
+
 type UserCache interface {
 	Set(ctx context.Context, user domain.User) error
 	Get(ctx context.Context, uid int64) (domain.User, error)

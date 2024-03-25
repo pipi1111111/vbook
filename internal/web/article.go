@@ -1,8 +1,10 @@
 package web
 
 import (
+	"context"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 	"log"
 	"net/http"
 	"strconv"
@@ -13,12 +15,16 @@ import (
 )
 
 type ArticleHandler struct {
-	as service.ArticleService
+	as      service.ArticleService
+	interAs service.InteractiveService
+	biz     string
 }
 
-func NewArticleHandler(as service.ArticleService) *ArticleHandler {
+func NewArticleHandler(as service.ArticleService, interAs service.InteractiveService) *ArticleHandler {
 	return &ArticleHandler{
-		as: as,
+		as:      as,
+		interAs: interAs,
+		biz:     "article",
 	}
 }
 func (ah *ArticleHandler) RegisterRouters(server *gin.Engine) {
@@ -31,6 +37,9 @@ func (ah *ArticleHandler) RegisterRouters(server *gin.Engine) {
 	a.POST("/list", ah.list)
 	pub := a.Group("/pub")
 	pub.GET("/:id", ah.PubDetail)
+	//传入一个参数 true 就是点赞 false就是取消点赞
+	pub.POST("/like", ah.like)
+	pub.POST("/collect", ah.Collect)
 }
 
 // Edit 接受一个Article输入 返回一个文章的Id
@@ -171,12 +180,38 @@ func (ah *ArticleHandler) PubDetail(ctx *gin.Context) {
 		log.Println(err)
 		return
 	}
-	art, err := ah.as.GetPubById(ctx, id)
+	var (
+		eg    errgroup.Group
+		art   domain.Article
+		inter domain.Interactive
+	)
+	eg.Go(func() error {
+		var er error
+		art, err = ah.as.GetPubById(ctx, id)
+		return er
+	})
+	eg.Go(func() error {
+		uc := ctx.MustGet("user").(ijwt.UserClaims)
+		var er error
+		inter, err = ah.interAs.Get(ctx, ah.biz, id, uc.Uid)
+		return er
+	})
+	//等待结果
+	err = eg.Wait()
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "参数错误"})
 		log.Println(err)
 		return
 	}
+	go func() {
+		newCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		er := ah.interAs.IncrReadCnt(newCtx, ah.biz, art.Id)
+		if er != nil {
+			log.Println("更新阅读数失败", er)
+		}
+	}()
+
 	ctx.JSON(http.StatusOK, Result{
 		Data: ArticleVo{
 			Id:         art.Id,
@@ -184,10 +219,61 @@ func (ah *ArticleHandler) PubDetail(ctx *gin.Context) {
 			Content:    art.Content,
 			AuthorId:   art.Author.Id,
 			AuthorName: art.Author.Name,
+			ReadCnt:    inter.ReadCnt,
+			CollectCnt: inter.CollectCnt,
+			LikeCnt:    inter.LikeCnt,
+			Liked:      inter.Liked,
+			Collected:  inter.Collected,
 			Status:     uint8(art.Status),
 			Ctime:      art.Ctime.Format(time.DateTime),
 			Utime:      art.Utime.Format(time.DateTime),
 		},
 	})
 
+}
+
+func (ah *ArticleHandler) like(ctx *gin.Context) {
+	type Req struct {
+		Id int64 `json:"id"`
+		//true 点赞 false 不点赞
+		Like bool `json:"like"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	uc := ctx.MustGet("user").(ijwt.UserClaims)
+	var err error
+	if req.Like {
+		//点赞
+		err = ah.interAs.Like(ctx, ah.biz, req.Id, uc.Uid)
+	} else {
+		//取消点赞
+		err = ah.interAs.CancelLike(ctx, ah.biz, req.Id, uc.Uid)
+	}
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		log.Println("点赞/取消点赞失败", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{Msg: "OK"})
+}
+
+func (ah *ArticleHandler) Collect(ctx *gin.Context) {
+	type Req struct {
+		Id  int64 `json:"id"`
+		Cid int64 `json:"cid"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	uc := ctx.MustGet("user").(ijwt.UserClaims)
+	err := ah.interAs.Collect(ctx, ah.biz, req.Id, req.Cid, uc.Uid)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		log.Println("收藏失败", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{Msg: "OK"})
 }

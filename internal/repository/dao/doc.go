@@ -10,7 +10,7 @@ import (
 )
 
 func InitTables(db *gorm.DB) error {
-	return db.AutoMigrate(&User{}, &Article{})
+	return db.AutoMigrate(&User{}, &Article{}, &PublishedArticle{}, &UserLikeBiz{}, &UserCollectionBiz{}, &AsyncSms{})
 }
 func InitCollection(mdb *mongo.Database) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
