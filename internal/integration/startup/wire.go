@@ -14,17 +14,14 @@ import (
 	"vbook/ioc"
 )
 
-var thirdPartySet = wire.NewSet(
-	ioc.InitDB, ioc.InitRedis,
-)
-
 func InitWebServer() *gin.Engine {
 	wire.Build(
-		thirdPartySet,
+		//第三方依赖
+		ioc.InitDB, ioc.InitRedis,
 		//dao部分
 		dao.NewUserDao, dao.NewArticleDao,
 		//cache部分
-		cache.NewUserCache, cache.NewCodeCache,
+		cache.NewUserCache, cache.NewCodeCache, cache.NewArticleCache,
 		//repository部分
 		repository.NewUserRepository,
 		repository.NewCodeRepository,
@@ -43,14 +40,4 @@ func InitWebServer() *gin.Engine {
 		ioc.InitGinMiddleware,
 	)
 	return gin.Default()
-}
-func InitArticleHandler() *web.ArticleHandler {
-	wire.Build(
-		thirdPartySet,
-		dao.NewArticleDao,
-		repository.NewArticleRepository,
-		service.NewArticleService,
-		web.NewArticleHandler,
-	)
-	return &web.ArticleHandler{}
 }
