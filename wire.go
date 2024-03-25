@@ -21,7 +21,7 @@ func InitWebServer() *gin.Engine {
 		//dao部分
 		dao.NewUserDao, dao.NewArticleDao,
 		//cache部分
-		cache.NewUserCache, cache.NewCodeCache,
+		cache.NewUserCache, cache.NewCodeCache, cache.NewArticleCache,
 		//repository部分
 		repository.NewUserRepository,
 		repository.NewCodeRepository,

@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	"log"
 	"vbook/internal/domain"
 	"vbook/internal/repository"
 )
@@ -9,17 +11,31 @@ import (
 type ArticleService interface {
 	Save(ctx context.Context, article domain.Article) (int64, error)
 	Publish(ctx context.Context, article domain.Article) (int64, error)
+	Withdraw(ctx context.Context, uid int64, id int64) error
+	GetByAuthor(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
+	GetById(ctx context.Context, id int64) (domain.Article, error)
+	GetPubById(ctx context.Context, id int64) (domain.Article, error)
 }
 type articleService struct {
 	ar repository.ArticleRepository
+	// V1 写法专用
+	authorRepo repository.AuthorRepository
+	readerRepo repository.ReaderRepository
 }
 
+func NewArticleServiceV1(readerRepo repository.ReaderRepository, authorRepo repository.AuthorRepository) *articleService {
+	return &articleService{
+		authorRepo: authorRepo,
+		readerRepo: readerRepo,
+	}
+}
 func NewArticleService(ar repository.ArticleRepository) ArticleService {
 	return &articleService{
 		ar: ar,
 	}
 }
 func (as *articleService) Save(ctx context.Context, article domain.Article) (int64, error) {
+	article.Status = domain.ArticleStatusUnPublish
 	if article.Id > 0 {
 		err := as.ar.Update(ctx, article)
 		return article.Id, err
@@ -28,6 +44,44 @@ func (as *articleService) Save(ctx context.Context, article domain.Article) (int
 	}
 }
 func (as *articleService) Publish(ctx context.Context, article domain.Article) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+	article.Status = domain.ArticleStatusPublished
+	return as.ar.Sync(ctx, article)
+}
+
+func (as *articleService) PublishV1(ctx context.Context, article domain.Article) (int64, error) {
+	var (
+		id  = article.Id
+		err error
+	)
+	if article.Id > 0 {
+		err = as.authorRepo.Update(ctx, article)
+	} else {
+		id, err = as.authorRepo.Create(ctx, article)
+	}
+	if err != nil {
+		return 0, err
+	}
+	article.Id = id
+	for i := 0; i < 3; i++ {
+		err = as.readerRepo.Save(ctx, article)
+		if err != nil {
+			log.Println("保存到制作库成功，但是到线上库失败")
+		} else {
+			return id, nil
+		}
+	}
+	log.Println(err)
+	return id, errors.New("保存到线上库失败,重试次数耗尽")
+}
+func (as *articleService) Withdraw(ctx context.Context, uid int64, id int64) error {
+	return as.ar.SyncStatus(ctx, uid, id, domain.ArticleStatusPrivate)
+}
+func (as *articleService) GetByAuthor(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error) {
+	return as.ar.GetByAuthor(ctx, uid, offset, limit)
+}
+func (as *articleService) GetById(ctx context.Context, id int64) (domain.Article, error) {
+	return as.ar.GetById(ctx, id)
+}
+func (as *articleService) GetPubById(ctx context.Context, id int64) (domain.Article, error) {
+	return as.ar.GetPubById(ctx, id)
 }

@@ -41,7 +41,7 @@ func (r *RedisUserCache) Get(ctx context.Context, uid int64) (domain.User, error
 	}
 	var u domain.User
 	err = json.Unmarshal([]byte(data), &u)
-	return u, nil
+	return u, err
 }
 func (r *RedisUserCache) Key(uid int64) string {
 	return fmt.Sprintf("user:info:%d", uid)
