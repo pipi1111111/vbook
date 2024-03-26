@@ -29,7 +29,6 @@ func (b *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 	const batchSize = 10
 	ts := make([]T, 0, batchSize)
 	for {
-		log.Println("一个批次开始")
 		batch := make([]*sarama.ConsumerMessage, 0, batchSize)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		var done = false

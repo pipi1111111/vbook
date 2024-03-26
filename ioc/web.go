@@ -9,8 +9,9 @@ import (
 	"vbook/internal/web"
 	ijwt "vbook/internal/web/jwt"
 	"vbook/internal/web/middlerware"
+	"vbook/pkg/ginx/middleware/prometheus"
+	"vbook/pkg/ginx/middleware/ratelimit"
 	"vbook/pkg/limiter"
-	"vbook/pkg/middleware/ratelimit"
 )
 
 func InitWeb(mdls []gin.HandlerFunc, userHdl *web.UserHandler, artHdl *web.ArticleHandler) *gin.Engine {
@@ -21,6 +22,12 @@ func InitWeb(mdls []gin.HandlerFunc, userHdl *web.UserHandler, artHdl *web.Artic
 	return server
 }
 func InitGinMiddleware(redisClient redis.Cmdable, hdl ijwt.Handler) []gin.HandlerFunc {
+	pd := prometheus.Builder{
+		Namespace: "ahGy",
+		Subsystem: "vbook",
+		Name:      "git_http",
+		Help:      "统计Gin的http接口",
+	}
 	return []gin.HandlerFunc{
 		cors.New(cors.Config{
 			AllowCredentials: true,
@@ -35,6 +42,8 @@ func InitGinMiddleware(redisClient redis.Cmdable, hdl ijwt.Handler) []gin.Handle
 			MaxAge: 15 * time.Hour,
 		}),
 		//限流
+		pd.BuildResponseTime(),
+		pd.BuildActiveRequest(),
 		ratelimit.NewBuilder(limiter.NewRedisSlidingWindowsLimiter(redisClient, time.Second, 500)).Build(),
 		//middlerware.NewLoginMiddlewareBuilder().CheckLogin(),
 		middlerware.NewLoginJwtMiddlewareBuilder(hdl).CheckLogin(),
