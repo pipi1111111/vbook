@@ -1,9 +1,14 @@
 package main
 
-import "vbook/internal/integration/startup"
-
 func main() {
-	server := startup.InitWebServer()
+	app := InitWebServer()
+	for _, c := range app.consumers {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+	server := app.server
 	err := server.Run(":8080")
 	if err != nil {
 		return

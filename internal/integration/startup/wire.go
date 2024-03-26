@@ -14,6 +14,12 @@ import (
 	"vbook/ioc"
 )
 
+var interactiveSvsSet = wire.NewSet(dao.NewGormInteractiveDao,
+	cache.NewRedisInteractiveCache,
+	repository.NewCacheInteractiveRepository,
+	service.NewInteractiveService,
+)
+
 func InitWebServer() *gin.Engine {
 	wire.Build(
 		//第三方依赖
@@ -38,6 +44,7 @@ func InitWebServer() *gin.Engine {
 
 		ioc.InitWeb,
 		ioc.InitGinMiddleware,
+		interactiveSvsSet,
 	)
 	return gin.Default()
 }

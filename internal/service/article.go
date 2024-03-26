@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"vbook/internal/domain"
+	"vbook/internal/events/article"
 	"vbook/internal/repository"
 )
 
@@ -14,13 +15,14 @@ type ArticleService interface {
 	Withdraw(ctx context.Context, uid int64, id int64) error
 	GetByAuthor(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
-	GetPubById(ctx context.Context, id int64) (domain.Article, error)
+	GetPubById(ctx context.Context, id, uid int64) (domain.Article, error)
 }
 type articleService struct {
 	ar repository.ArticleRepository
 	// V1 写法专用
 	authorRepo repository.AuthorRepository
 	readerRepo repository.ReaderRepository
+	producer   article.Producer
 }
 
 func NewArticleServiceV1(readerRepo repository.ReaderRepository, authorRepo repository.AuthorRepository) *articleService {
@@ -29,9 +31,10 @@ func NewArticleServiceV1(readerRepo repository.ReaderRepository, authorRepo repo
 		readerRepo: readerRepo,
 	}
 }
-func NewArticleService(ar repository.ArticleRepository) ArticleService {
+func NewArticleService(ar repository.ArticleRepository, producer article.Producer) ArticleService {
 	return &articleService{
-		ar: ar,
+		ar:       ar,
+		producer: producer,
 	}
 }
 func (as *articleService) Save(ctx context.Context, article domain.Article) (int64, error) {
@@ -82,6 +85,19 @@ func (as *articleService) GetByAuthor(ctx context.Context, uid int64, offset int
 func (as *articleService) GetById(ctx context.Context, id int64) (domain.Article, error) {
 	return as.ar.GetById(ctx, id)
 }
-func (as *articleService) GetPubById(ctx context.Context, id int64) (domain.Article, error) {
-	return as.ar.GetPubById(ctx, id)
+func (as *articleService) GetPubById(ctx context.Context, id, uid int64) (domain.Article, error) {
+	res, err := as.ar.GetPubById(ctx, id)
+	go func() {
+		if err == nil {
+			//在这里发一个消息
+			er := as.producer.ProduceReadEvent(article.ReadEvent{
+				Aid: id,
+				Uid: uid,
+			})
+			if er != nil {
+				log.Println("发送ReadEvent失败", er)
+			}
+		}
+	}()
+	return res, err
 }
