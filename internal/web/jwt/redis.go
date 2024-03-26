@@ -51,6 +51,7 @@ func (h *RedisJWTHandler) SetJWTToken(ctx *gin.Context, uid int64, ssid string) 
 	}
 	token := jwt.NewWithClaims(h.signingMethod, uc)
 	tokenStr, err := token.SignedString(JWTKey)
+	fmt.Println(tokenStr)
 	if err != nil {
 		return err
 	}

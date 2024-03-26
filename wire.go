@@ -3,8 +3,8 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	"vbook/internal/events/article"
 	"vbook/internal/repository"
 	"vbook/internal/repository/cache"
 	"vbook/internal/repository/dao"
@@ -20,12 +20,12 @@ var interactiveSvsSet = wire.NewSet(dao.NewGormInteractiveDao,
 	service.NewInteractiveService,
 )
 
-func InitWebServer() *gin.Engine {
+func InitWebServer() *App {
 	wire.Build(
 		//第三方依赖
-		ioc.InitDB, ioc.InitRedis,
+		ioc.InitDB, ioc.InitRedis, ioc.InitSaramaClient, ioc.InitSyncProducer, ioc.InitConsumers,
 		//dao部分
-		dao.NewUserDao, dao.NewArticleDao,
+		dao.NewUserDao, dao.NewArticleDao, article.NewSaramaSyncProducer, article.NewInteractiveReadEventConsumer,
 		//cache部分
 		cache.NewUserCache, cache.NewCodeCache, cache.NewArticleCache,
 		//repository部分
@@ -45,6 +45,7 @@ func InitWebServer() *gin.Engine {
 		ioc.InitWeb,
 		ioc.InitGinMiddleware,
 		interactiveSvsSet,
+		wire.Struct(new(App), "*"),
 	)
-	return gin.Default()
+	return new(App)
 }

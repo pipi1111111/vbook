@@ -185,9 +185,10 @@ func (ah *ArticleHandler) PubDetail(ctx *gin.Context) {
 		art   domain.Article
 		inter domain.Interactive
 	)
+	uc := ctx.MustGet("user").(ijwt.UserClaims)
 	eg.Go(func() error {
 		var er error
-		art, err = ah.as.GetPubById(ctx, id)
+		art, err = ah.as.GetPubById(ctx, id, uc.Uid)
 		return er
 	})
 	eg.Go(func() error {

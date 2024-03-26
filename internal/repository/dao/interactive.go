@@ -15,6 +15,7 @@ type InteractiveDao interface {
 	GetLikeInfo(ctx context.Context, biz string, id int64, uid int64) (UserLikeBiz, error)
 	GetCollectedInfo(ctx context.Context, biz string, id int64, uid int64) (UserCollectionBiz, error)
 	Get(ctx context.Context, biz string, id int64) (Interactive, error)
+	BatchIncrReadCnt(ctx context.Context, biz []string, bizId []int64) error
 }
 type GormInteractiveDao struct {
 	db *gorm.DB
@@ -70,6 +71,19 @@ func (g *GormInteractiveDao) IncrReadCnt(ctx context.Context, biz string, bizId 
 		Ctime:   now,
 		Utime:   now,
 	}).Error
+}
+
+func (g *GormInteractiveDao) BatchIncrReadCnt(ctx context.Context, biz []string, bizId []int64) error {
+	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txDao := NewGormInteractiveDao(tx)
+		for i := 0; i < len(biz); i++ {
+			err := txDao.IncrReadCnt(ctx, biz[i], bizId[i])
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (g *GormInteractiveDao) DeleteLikeInfo(ctx context.Context, biz string, id int64, uid int64) error {
