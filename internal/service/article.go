@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"log"
+	"time"
 	"vbook/internal/domain"
 	"vbook/internal/events/article"
 	"vbook/internal/repository"
 )
 
+//go:generate mockgen -source=./article.go -package=svcmocks -destination=./mocks/article.mock.go ArticleService
 type ArticleService interface {
 	Save(ctx context.Context, article domain.Article) (int64, error)
 	Publish(ctx context.Context, article domain.Article) (int64, error)
@@ -16,6 +18,7 @@ type ArticleService interface {
 	GetByAuthor(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPubById(ctx context.Context, id, uid int64) (domain.Article, error)
+	ListPub(ctx context.Context, start time.Time, offset, limit int) ([]domain.Article, error)
 }
 type articleService struct {
 	ar repository.ArticleRepository
@@ -100,4 +103,7 @@ func (as *articleService) GetPubById(ctx context.Context, id, uid int64) (domain
 		}
 	}()
 	return res, err
+}
+func (as *articleService) ListPub(ctx context.Context, start time.Time, offset, limit int) ([]domain.Article, error) {
+	return as.ar.ListPub(ctx, start, offset, limit)
 }

@@ -19,11 +19,14 @@ var interactiveSvsSet = wire.NewSet(dao.NewGormInteractiveDao,
 	repository.NewCacheInteractiveRepository,
 	service.NewInteractiveService,
 )
+var rankingSvcSet = wire.NewSet(cache.NewRankingRedis,
+	repository.NewRankingRepository,
+	service.NewBatchRankingService)
 
 func InitWebServer() *App {
 	wire.Build(
 		//第三方依赖
-		ioc.InitDB, ioc.InitRedis, ioc.InitSaramaClient, ioc.InitSyncProducer, ioc.InitConsumers,
+		ioc.InitDB, ioc.InitRedis, ioc.InitSaramaClient, ioc.InitSyncProducer, ioc.InitConsumers, ioc.InitRlockClient,
 		//dao部分
 		dao.NewUserDao, dao.NewArticleDao, article.NewSaramaSyncProducer, article.NewInteractiveReadEventConsumer,
 		//cache部分
@@ -45,6 +48,9 @@ func InitWebServer() *App {
 		ioc.InitWeb,
 		ioc.InitGinMiddleware,
 		interactiveSvsSet,
+		rankingSvcSet,
+		ioc.InitJobs,
+		ioc.InitRankingJob,
 		wire.Struct(new(App), "*"),
 	)
 	return new(App)
