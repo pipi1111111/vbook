@@ -7,12 +7,14 @@ import (
 	"vbook/internal/repository"
 )
 
+//go:generate mockgen -source=./interactive.go -package=svcmocks -destination=./mocks/interactive.mock.go InteractiveService
 type InteractiveService interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
 	Like(ctx context.Context, biz string, id int64, uid int64) error
 	CancelLike(ctx context.Context, biz string, id int64, uid int64) error
 	Collect(ctx context.Context, biz string, id, cid, uid int64) error
 	Get(ctx context.Context, biz string, id int64, uid int64) (domain.Interactive, error)
+	GetByIds(ctx context.Context, biz string, ids []int64) (map[int64]domain.Interactive, error)
 }
 type interactiveService struct {
 	repoInter repository.InteractiveRepository
@@ -55,4 +57,15 @@ func (i *interactiveService) Get(ctx context.Context, biz string, id int64, uid 
 		return er
 	})
 	return inter, eg.Wait()
+}
+func (i *interactiveService) GetByIds(ctx context.Context, biz string, ids []int64) (map[int64]domain.Interactive, error) {
+	inters, err := i.repoInter.GetByIds(ctx, biz, ids)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[int64]domain.Interactive, len(inters))
+	for _, inter := range inters {
+		res[inter.BizId] = inter
+	}
+	return res, nil
 }
