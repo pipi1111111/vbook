@@ -9,22 +9,24 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	domain2 "vbook/interactive/domain"
+	service2 "vbook/interactive/service"
 	"vbook/internal/domain"
 	"vbook/internal/service"
 	ijwt "vbook/internal/web/jwt"
 )
 
 type ArticleHandler struct {
-	as      service.ArticleService
-	interAs service.InteractiveService
-	biz     string
+	as       service.ArticleService
+	interSvc service2.InteractiveService
+	biz      string
 }
 
-func NewArticleHandler(as service.ArticleService, interAs service.InteractiveService) *ArticleHandler {
+func NewArticleHandler(as service.ArticleService, interSvc service2.InteractiveService) *ArticleHandler {
 	return &ArticleHandler{
-		as:      as,
-		interAs: interAs,
-		biz:     "article",
+		as:       as,
+		interSvc: interSvc,
+		biz:      "article",
 	}
 }
 func (ah *ArticleHandler) RegisterRouters(server *gin.Engine) {
@@ -183,7 +185,7 @@ func (ah *ArticleHandler) PubDetail(ctx *gin.Context) {
 	var (
 		eg    errgroup.Group
 		art   domain.Article
-		inter domain.Interactive
+		inter domain2.Interactive
 	)
 	uc := ctx.MustGet("user").(ijwt.UserClaims)
 	eg.Go(func() error {
@@ -194,7 +196,7 @@ func (ah *ArticleHandler) PubDetail(ctx *gin.Context) {
 	eg.Go(func() error {
 		uc := ctx.MustGet("user").(ijwt.UserClaims)
 		var er error
-		inter, err = ah.interAs.Get(ctx, ah.biz, id, uc.Uid)
+		inter, err = ah.interSvc.Get(ctx, ah.biz, id, uc.Uid)
 		return er
 	})
 	//等待结果
@@ -207,7 +209,7 @@ func (ah *ArticleHandler) PubDetail(ctx *gin.Context) {
 	go func() {
 		newCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		er := ah.interAs.IncrReadCnt(newCtx, ah.biz, art.Id)
+		er := ah.interSvc.IncrReadCnt(newCtx, ah.biz, art.Id)
 		if er != nil {
 			log.Println("更新阅读数失败", er)
 		}
@@ -247,10 +249,10 @@ func (ah *ArticleHandler) like(ctx *gin.Context) {
 	var err error
 	if req.Like {
 		//点赞
-		err = ah.interAs.Like(ctx, ah.biz, req.Id, uc.Uid)
+		err = ah.interSvc.Like(ctx, ah.biz, req.Id, uc.Uid)
 	} else {
 		//取消点赞
-		err = ah.interAs.CancelLike(ctx, ah.biz, req.Id, uc.Uid)
+		err = ah.interSvc.CancelLike(ctx, ah.biz, req.Id, uc.Uid)
 	}
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
@@ -270,7 +272,7 @@ func (ah *ArticleHandler) Collect(ctx *gin.Context) {
 		return
 	}
 	uc := ctx.MustGet("user").(ijwt.UserClaims)
-	err := ah.interAs.Collect(ctx, ah.biz, req.Id, req.Cid, uc.Uid)
+	err := ah.interSvc.Collect(ctx, ah.biz, req.Id, req.Cid, uc.Uid)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
 		log.Println("收藏失败", err)

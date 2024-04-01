@@ -8,6 +8,11 @@ package main
 
 import (
 	"github.com/google/wire"
+	"vbook/interactive/events"
+	repository2 "vbook/interactive/repository"
+	cache2 "vbook/interactive/repository/cache"
+	dao2 "vbook/interactive/repository/dao"
+	service2 "vbook/interactive/service"
 	"vbook/internal/events/article"
 	"vbook/internal/repository"
 	"vbook/internal/repository/cache"
@@ -41,13 +46,13 @@ func InitWebServer() *App {
 	syncProducer := ioc.InitSyncProducer(client)
 	producer := article.NewSaramaSyncProducer(syncProducer)
 	articleService := service.NewArticleService(articleRepository, producer)
-	interactiveDao := dao.NewGormInteractiveDao(db)
-	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository.NewCacheInteractiveRepository(interactiveDao, interactiveCache)
-	interactiveService := service.NewInteractiveService(interactiveRepository)
+	interactiveDao := dao2.NewGormInteractiveDao(db)
+	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository2.NewCacheInteractiveRepository(interactiveDao, interactiveCache)
+	interactiveService := service2.NewInteractiveService(interactiveRepository)
 	articleHandler := web.NewArticleHandler(articleService, interactiveService)
 	engine := ioc.InitWeb(v, userHandler, articleHandler)
-	interactiveReadEventConsumer := article.NewInteractiveReadEventConsumer(interactiveRepository, client)
+	interactiveReadEventConsumer := events.NewInteractiveReadEventConsumer(interactiveRepository, client)
 	v2 := ioc.InitConsumers(interactiveReadEventConsumer)
 	rankingService := service.NewBatchRankingService(interactiveService, articleService)
 	rlockClient := ioc.InitRlockClient(cmdable)
@@ -63,6 +68,6 @@ func InitWebServer() *App {
 
 // wire.go:
 
-var interactiveSvsSet = wire.NewSet(dao.NewGormInteractiveDao, cache.NewRedisInteractiveCache, repository.NewCacheInteractiveRepository, service.NewInteractiveService)
+var interactiveSvcSet = wire.NewSet(dao2.NewGormInteractiveDao, cache2.NewRedisInteractiveCache, repository2.NewCacheInteractiveRepository, service2.NewInteractiveService)
 
 var rankingSvcSet = wire.NewSet(cache.NewRankingRedis, repository.NewRankingRepository, service.NewBatchRankingService)

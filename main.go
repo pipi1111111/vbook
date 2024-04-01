@@ -20,11 +20,11 @@ func main() {
 			panic(err)
 		}
 	}
-	app.corn.Start()
-	defer func() {
-		ctx := app.corn.Stop()
-		<-ctx.Done()
-	}()
+	//app.corn.Start()
+	//defer func() {
+	//	ctx := app.corn.Stop()
+	//	<-ctx.Done()
+	//}()
 	server := app.server
 	err := server.Run(":8080")
 	if err != nil {

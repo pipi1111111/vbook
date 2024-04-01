@@ -4,6 +4,11 @@ package main
 
 import (
 	"github.com/google/wire"
+	"vbook/interactive/events"
+	repository2 "vbook/interactive/repository"
+	cache2 "vbook/interactive/repository/cache"
+	dao2 "vbook/interactive/repository/dao"
+	service2 "vbook/interactive/service"
 	"vbook/internal/events/article"
 	"vbook/internal/repository"
 	"vbook/internal/repository/cache"
@@ -14,43 +19,62 @@ import (
 	"vbook/ioc"
 )
 
-var interactiveSvsSet = wire.NewSet(dao.NewGormInteractiveDao,
-	cache.NewRedisInteractiveCache,
-	repository.NewCacheInteractiveRepository,
-	service.NewInteractiveService,
+var interactiveSvcSet = wire.NewSet(dao2.NewGormInteractiveDao,
+	cache2.NewRedisInteractiveCache,
+	repository2.NewCacheInteractiveRepository,
+	service2.NewInteractiveService,
 )
-var rankingSvcSet = wire.NewSet(cache.NewRankingRedis,
+
+var rankingSvcSet = wire.NewSet(
+	cache.NewRankingRedis,
 	repository.NewRankingRepository,
-	service.NewBatchRankingService)
+	service.NewBatchRankingService,
+)
 
 func InitWebServer() *App {
 	wire.Build(
-		//第三方依赖
-		ioc.InitDB, ioc.InitRedis, ioc.InitSaramaClient, ioc.InitSyncProducer, ioc.InitConsumers, ioc.InitRlockClient,
-		//dao部分
-		dao.NewUserDao, dao.NewArticleDao, article.NewSaramaSyncProducer, article.NewInteractiveReadEventConsumer,
-		//cache部分
-		cache.NewUserCache, cache.NewCodeCache, cache.NewArticleCache,
-		//repository部分
-		repository.NewUserRepository,
-		repository.NewCodeRepository,
-		repository.NewArticleRepository,
-		//service部分
-		ioc.InitSmsService,
-		service.NewUserService,
-		service.NewCodeService,
-		service.NewArticleService,
-		//handler部分
-		ijwt.NewRedisJWTHandler,
-		web.NewUserHandler,
-		web.NewArticleHandler,
+		// 第三方依赖
+		ioc.InitRedis, ioc.InitDB,
+		ioc.InitSaramaClient,
+		ioc.InitSyncProducer,
+		ioc.InitRlockClient,
+		// DAO 部分
+		dao.NewUserDao,
+		dao.NewArticleDao,
 
-		ioc.InitWeb,
-		ioc.InitGinMiddleware,
-		interactiveSvsSet,
+		interactiveSvcSet,
 		rankingSvcSet,
 		ioc.InitJobs,
 		ioc.InitRankingJob,
+
+		article.NewSaramaSyncProducer,
+		events.NewInteractiveReadEventConsumer,
+		ioc.InitConsumers,
+
+		// cache 部分
+		cache.NewCodeCache, cache.NewUserCache,
+		cache.NewArticleCache,
+
+		// repository 部分
+		repository.NewUserRepository,
+		repository.NewCodeRepository,
+		repository.NewArticleRepository,
+
+		// Service 部分
+		ioc.InitSmsService,
+		//ioc.InitWechatService,
+		service.NewUserService,
+		service.NewCodeService,
+		service.NewArticleService,
+
+		// handler 部分
+		web.NewUserHandler,
+		web.NewArticleHandler,
+		ijwt.NewRedisJWTHandler,
+		//web.NewOAuth2WechatHandler,
+		ioc.InitGinMiddleware,
+		ioc.InitWeb,
+
 		wire.Struct(new(App), "*"),
 	)
 	return new(App)
