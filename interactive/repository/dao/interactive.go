@@ -181,6 +181,8 @@ func (g *GormInteractiveDao) Get(ctx context.Context, biz string, id int64) (Int
 }
 func (g *GormInteractiveDao) GetByIds(ctx context.Context, biz string, ids []int64) ([]Interactive, error) {
 	var res []Interactive
-	err := g.db.WithContext(ctx).Where("biz = ? AND biz_id = ?", biz, ids).First(&res).Error
+	err := g.db.WithContext(ctx).
+		Where("biz = ? AND biz_id IN ?", biz, ids).
+		Find(&res).Error
 	return res, err
 }
