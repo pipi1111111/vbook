@@ -43,6 +43,7 @@ func InitWebServer() *App {
 		dao.NewArticleDao,
 
 		interactiveSvcSet,
+		ioc.InitIntrClient,
 		rankingSvcSet,
 		ioc.InitJobs,
 		ioc.InitRankingJob,

@@ -6,7 +6,7 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"math"
 	"time"
-	"vbook/interactive/service"
+	interv1 "vbook/api/proto/gen/inter/v1"
 	"vbook/internal/domain"
 	"vbook/internal/repository"
 )
@@ -19,7 +19,7 @@ type RankingService interface {
 }
 type BatchRankingService struct {
 	//用来去点赞数
-	interSvc service.InteractiveService
+	interSvc interv1.InteractiveServiceClient
 	//用来查找文章
 	artSvc    ArticleService
 	batchSize int
@@ -28,7 +28,7 @@ type BatchRankingService struct {
 	repo      repository.RankingRepository
 }
 
-func NewBatchRankingService(interSvc service.InteractiveService, artSvc ArticleService) RankingService {
+func NewBatchRankingService(interSvc interv1.InteractiveServiceClient, artSvc ArticleService) RankingService {
 	return &BatchRankingService{
 		interSvc:  interSvc,
 		artSvc:    artSvc,
@@ -79,7 +79,11 @@ func (b *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error
 			return art.Id
 		})
 		//取点赞数
-		interMap, err := b.interSvc.GetByIds(ctx, "article", ids)
+		interResp, err := b.interSvc.GetByIds(ctx, &interv1.GetByIdsRequest{
+			Biz: "article",
+			Ids: ids,
+		})
+		interMap := interResp.Inters
 		if err != nil {
 			return []domain.Article{}, err
 		}
