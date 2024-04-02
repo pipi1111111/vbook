@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"time"
+	"vbook/pkg/migrate"
 )
 
 type InteractiveDao interface {
@@ -38,6 +39,19 @@ type Interactive struct {
 	Utime      int64
 	Ctime      int64
 }
+
+func (i Interactive) ID() int64 {
+	return i.Id
+}
+
+func (i Interactive) CompareTo(dst migrate.Entity) bool {
+	val, ok := dst.(Interactive)
+	if !ok {
+		return false
+	}
+	return i == val
+}
+
 type UserLikeBiz struct {
 	Id     int64  `gorm:"primaryKey,autoIncrement"`
 	Uid    int64  `gorm:"uniqueIndex:uid_biz_type_id"`

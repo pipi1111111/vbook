@@ -2,22 +2,58 @@ package ioc
 
 import (
 	prometheus2 "github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
 	"gorm.io/plugin/prometheus"
-	"vbook/config"
-	"vbook/interactive/repository/dao"
+	dao2 "vbook/interactive/repository/dao"
 	"vbook/pkg/gormx"
+	"vbook/pkg/gormx/connpool"
 )
 
-func InitDB() *gorm.DB {
-	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
+type SrcDB *gorm.DB
+type DstDB *gorm.DB
+
+func InitSrcDB() SrcDB {
+	return initDB("src")
+}
+
+func InitDstDB() DstDB {
+	return initDB("dst")
+}
+
+func InitDoubleWritePool(src SrcDB, dst DstDB) *connpool.DoubleWritePool {
+	return connpool.NewDoubleWritePool(src, dst)
+}
+
+func InitBizDB(p *connpool.DoubleWritePool) *gorm.DB {
+	doubleWrite, err := gorm.Open(mysql.New(mysql.Config{
+		Conn: p,
+	}))
+	if err != nil {
+		panic(err)
+	}
+	return doubleWrite
+}
+
+func initDB(key string) *gorm.DB {
+	type Config struct {
+		DSN string `yaml:"dsn"`
+	}
+	var cfg Config = Config{
+		DSN: "root:root@tcp(localhost:13306)/vbook",
+	}
+	err := viper.UnmarshalKey("db."+key, &cfg)
+	if err != nil {
+		panic(err)
+	}
+	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
 	err = db.Use(prometheus.New(prometheus.Config{
-		DBName:          "vbook",
+		DBName:          "vbook" + key,
 		RefreshInterval: 15,
 		MetricsCollector: []prometheus.MetricsCollector{
 			&prometheus.MySQL{
@@ -29,10 +65,10 @@ func InitDB() *gorm.DB {
 		panic(err)
 	}
 	cb := gormx.NewCallbacks(prometheus2.SummaryOpts{
-		Namespace: "ahGy",
+		Namespace: "zsz",
 		Subsystem: "vbook",
-		Name:      "gorm_db",
-		Help:      "统计Gorm数据库查询",
+		Name:      "gorm_db_" + key,
+		Help:      "统计 GORM 的数据库查询",
 		ConstLabels: map[string]string{
 			"instance_id": "my_instance",
 		},
@@ -44,15 +80,18 @@ func InitDB() *gorm.DB {
 			0.999: 0.0001,
 		},
 	})
+
 	err = db.Use(cb)
 	if err != nil {
 		panic(err)
 	}
-	err = db.Use(tracing.NewPlugin(tracing.WithoutMetrics(), tracing.WithDBName("vbook")))
+
+	err = db.Use(tracing.NewPlugin(tracing.WithoutMetrics(),
+		tracing.WithDBName("vbook_"+key)))
 	if err != nil {
 		panic(err)
 	}
-	err = dao.InitTables(db)
+	err = dao2.InitTables(db)
 	if err != nil {
 		panic(err)
 	}
