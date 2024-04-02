@@ -23,13 +23,6 @@ func InitSaramaClient() sarama.Client {
 	}
 	return client
 }
-func InitSyncProducer(c sarama.Client) sarama.SyncProducer {
-	p, err := sarama.NewSyncProducerFromClient(c)
-	if err != nil {
-		panic(err)
-	}
-	return p
-}
 func InitConsumers(c1 *events2.InteractiveReadEventConsumer) []events.Consumer {
 	return []events.Consumer{c1}
 }

@@ -6,13 +6,7 @@ import (
 )
 
 func main() {
-	//tpCancel := ioc.InitOTEL()
-	//defer func() {
-	//	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	//	defer cancel()
-	//	tpCancel(ctx)
-	//}()
-	app := InitWebServer()
+	app := InitApp()
 	initPrometheus()
 	for _, c := range app.consumers {
 		err := c.Start()
@@ -20,17 +14,10 @@ func main() {
 			panic(err)
 		}
 	}
-	//app.corn.Start()
-	//defer func() {
-	//	ctx := app.corn.Stop()
-	//	<-ctx.Done()
-	//}()
-	server := app.server
-	err := server.Run(":8080")
+	err := app.server.Serve()
 	if err != nil {
 		return
 	}
-
 }
 func initPrometheus() {
 	go func() {

@@ -6,6 +6,7 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"math"
 	"time"
+	"vbook/interactive/service"
 	"vbook/internal/domain"
 	"vbook/internal/repository"
 )
@@ -18,7 +19,7 @@ type RankingService interface {
 }
 type BatchRankingService struct {
 	//用来去点赞数
-	interSvc InteractiveService
+	interSvc service.InteractiveService
 	//用来查找文章
 	artSvc    ArticleService
 	batchSize int
@@ -27,7 +28,7 @@ type BatchRankingService struct {
 	repo      repository.RankingRepository
 }
 
-func NewBatchRankingService(interSvc InteractiveService, artSvc ArticleService) RankingService {
+func NewBatchRankingService(interSvc service.InteractiveService, artSvc ArticleService) RankingService {
 	return &BatchRankingService{
 		interSvc:  interSvc,
 		artSvc:    artSvc,

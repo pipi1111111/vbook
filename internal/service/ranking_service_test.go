@@ -6,6 +6,8 @@ import (
 	"go.uber.org/mock/gomock"
 	"testing"
 	"time"
+	domain2 "vbook/interactive/domain"
+	"vbook/interactive/service"
 	"vbook/internal/domain"
 	svcmocks "vbook/internal/service/mocks"
 )
@@ -15,13 +17,13 @@ func TestBatchRankingService_TopN(t *testing.T) {
 	now := time.Now()
 	testCase := []struct {
 		name     string
-		mock     func(ctrl *gomock.Controller) (InteractiveService, ArticleService)
+		mock     func(ctrl *gomock.Controller) (service.InteractiveService, ArticleService)
 		wantArts []domain.Article
 		wantErr  error
 	}{
 		{
 			name: "成功获取",
-			mock: func(ctrl *gomock.Controller) (InteractiveService, ArticleService) {
+			mock: func(ctrl *gomock.Controller) (service.InteractiveService, ArticleService) {
 				artSvc := svcmocks.NewMockArticleService(ctrl)
 				interSvc := svcmocks.NewMockInteractiveService(ctrl)
 				//先模拟批量获取数据
@@ -38,14 +40,14 @@ func TestBatchRankingService_TopN(t *testing.T) {
 				//模拟第三批 没数据了
 				artSvc.EXPECT().ListPub(gomock.Any(), gomock.Any(), 4, 2).Return([]domain.Article{}, nil)
 				//第一批的点赞数据
-				interSvc.EXPECT().GetByIds(gomock.Any(), "article", []int64{1, 2}).Return(map[int64]domain.Interactive{
-					1: domain.Interactive{LikeCnt: 1},
-					2: domain.Interactive{LikeCnt: 2},
+				interSvc.EXPECT().GetByIds(gomock.Any(), "article", []int64{1, 2}).Return(map[int64]domain2.Interactive{
+					1: domain2.Interactive{LikeCnt: 1},
+					2: domain2.Interactive{LikeCnt: 2},
 				}, nil)
 				//第二批的点赞数据
-				interSvc.EXPECT().GetByIds(gomock.Any(), "article", []int64{3, 4}).Return(map[int64]domain.Interactive{
-					3: domain.Interactive{LikeCnt: 3},
-					4: domain.Interactive{LikeCnt: 4},
+				interSvc.EXPECT().GetByIds(gomock.Any(), "article", []int64{3, 4}).Return(map[int64]domain2.Interactive{
+					3: domain2.Interactive{LikeCnt: 3},
+					4: domain2.Interactive{LikeCnt: 4},
 				}, nil)
 				return interSvc, artSvc
 			},

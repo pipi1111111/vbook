@@ -13,8 +13,6 @@ func InitTables(db *gorm.DB) error {
 	return db.AutoMigrate(&User{},
 		&Article{},
 		&PublishedArticle{},
-		&UserLikeBiz{},
-		&UserCollectionBiz{},
 		&AsyncSms{},
 		&Job{})
 }

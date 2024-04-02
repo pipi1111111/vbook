@@ -4,14 +4,14 @@ import (
 	"context"
 	"github.com/ecodeclub/ekit/slice"
 	"log"
-	"vbook/internal/domain"
-	"vbook/internal/repository/cache"
-	"vbook/internal/repository/dao"
+	"vbook/interactive/domain"
+	"vbook/interactive/repository/cache"
+	"vbook/interactive/repository/dao"
 )
 
 type InteractiveRepository interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
-	BatchIncrReadCnt(ctx context.Context, biz []string, bizId []int64) error
+	//BatchIncrReadCnt(ctx context.Context, biz []string, bizId []int64) error
 	IncrLike(ctx context.Context, biz string, id int64, uid int64) error
 	DecrLike(ctx context.Context, biz string, id int64, uid int64) error
 	AddCollectionItem(ctx context.Context, biz string, id int64, cid int64, uid int64) error
@@ -41,21 +41,21 @@ func (c *CacheInteractiveRepository) IncrReadCnt(ctx context.Context, biz string
 	return c.cache.IncrReadCntIfPresent(ctx, biz, bizId)
 }
 
-func (c *CacheInteractiveRepository) BatchIncrReadCnt(ctx context.Context, biz []string, bizId []int64) error {
-	err := c.dao.BatchIncrReadCnt(ctx, biz, bizId)
-	if err != nil {
-		return err
-	}
-	go func() {
-		for i := 0; i < len(biz); i++ {
-			er := c.cache.IncrReadCntIfPresent(ctx, biz[i], bizId[i])
-			if er != nil {
-				log.Println(err)
-			}
-		}
-	}()
-	return nil
-}
+//func (c *CacheInteractiveRepository) BatchIncrReadCnt(ctx context.Context, biz []string, bizId []int64) error {
+//	err := c.dao.BatchIncrReadCnt(ctx, biz, bizId)
+//	if err != nil {
+//		return err
+//	}
+//	go func() {
+//		for i := 0; i < len(biz); i++ {
+//			er := c.cache.IncrReadCntIfPresent(ctx, biz[i], bizId[i])
+//			if er != nil {
+//				log.Println(err)
+//			}
+//		}
+//	}()
+//	return nil
+//}
 
 func (c *CacheInteractiveRepository) DecrLike(ctx context.Context, biz string, id int64, uid int64) error {
 	err := c.dao.DeleteLikeInfo(ctx, biz, id, uid)
